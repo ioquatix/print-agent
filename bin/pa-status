@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby
+
+require 'print_agent'
+
+require 'time'
+require 'print_agent'
+require 'pp'
+
+host = PrintAgent::resolve_host(ARGV[0]) || "127.0.0.1"
+
+raise ArgumentError.new("Host must be valid hostname or IP address") unless host != nil 
+
+begin
+  server = PrintAgent::server_connection(host)
+  result = server.call("server_status")
+  
+  queue_time = Time.parse(result["time"])
+  
+  puts "#{result["count"]} jobs on queue; timeout=#{result['timeout']}"
+
+  puts "-" * 30
+  
+  result["queue"].sort_by{|a| a['id'].to_i}.each do |j|
+    job_time = Time.parse(j["birth"])
+    remaining_time = result["timeout"] - (queue_time - job_time)
+    puts "#{j['id'].to_s.rjust(7)}: #{j['status'].to_s.ljust(10)} #{sprintf('%0.2f', remaining_time)}"
+  end
+  
+  puts "-" * 30
+  
+  result['stats'].keys.sort.each do |name|
+    val = result['stats'][name]
+    puts "#{name.rjust(22)}: #{val}"
+  end
+
+rescue Errno::ECONNREFUSED
+  puts "Server not available (Connection refused)."
+end

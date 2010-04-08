@@ -1,0 +1,34 @@
+#!/usr/bin/env ruby
+
+require 'print_agent'
+require 'print_agent/tasks'
+require 'cupsys/backend'
+
+$backend = CUPSYS::Backend.new
+
+# This backend does not provide any discovery features.
+if $backend.task == :query
+	$backend.run_next!
+end
+
+$stderr.puts "Job #{$backend.job_id}: Printing #{$backend.title.dump} to #{$backend.next_uri.dump} as #{$backend.username} from #{$backend.client_hostname}..."
+
+$stderr.puts "Options = #{$backend.options.inspect}"
+
+result = false
+if $backend.client_hostname == 'localhost' and $backend.options['print-agent-status'] == 'accepted'
+	$stderr.puts "Job #{$backend.job_id}: Accepting job..."
+
+	$backend.run_next!
+else
+	$stderr.puts "Job #{$backend.job_id}: Spooling job to authentication server..."
+
+	print_file = "/tmp/job_#{$backend.job_id}.prn"
+
+	result = PrintAgent::Tasks.spool_cups_job($backend)
+end
+
+unless result
+  $stderr.puts "Job #{$backend.job_id}: Could not spool job to server"
+  exit 1
+end

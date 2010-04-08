@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+
+require 'print_agent'
+require 'print_agent/server'
+
+status = ARGV[0].to_sym
+job_id = ARGV[1].to_i
+details = {} # {'Username' => `whoami`.strip}
+
+ARGV[2..-1].each do |p|
+	/([^=]+)=(.*)/.match(p)
+	details[$1] = $2
+end
+
+raise ArgumentError.new("Status must be one of 'accept' or 'reject'") unless [:accept, :reject].include?(status)
+raise ArgumentError.new("job_id must be integer > 0") unless job_id != 0 
+
+server = PrintAgent::server_connection
+
+result = nil
+attempts = 0
+while result == nil and attempts < 5
+	puts "Updating job #{job_id} to #{status} with details #{details.inspect}..."
+
+	result = server.call("release", job_id, status, details)
+
+	sleep attempts * 5
+	attempts += 1
+end
+
+if result and result[PrintAgent::Server::STATUS] != 0
+	exit result[PrintAgent::Server::STATUS]
+end

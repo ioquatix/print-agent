@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+
+puts "Setting up CUPS/PrintAgent Server..."
+
+if `whoami`.strip != 'root'
+	puts "This command should be run as root!"
+	exit 1
+end
+
+path = ARGV[0]
+
+unless path
+	locate = `locate cups/backend/lpd`.strip
+	
+	if locate != ""
+		path = File.dirname(locate)
+	end
+	
+	puts "Found cups backends path: #{path}... is this correct? [y/N]"
+	
+	if gets.strip != "y"
+		exit 1
+	end
+end
+
+pa_spool_path = `which pa-spool`.strip
+pa_spool_backend_path = File.join(path, 'pa-spool')
+
+if File.exist? pa_spool_backend_path
+	FileUtils.rm pa_spool_backend_path
+end
+
+puts "Linking #{pa_spool_path} to #{File.join(path, 'pa-spool')}"
+FileUtils.ln(pa_spool_path, pa_spool_backend_path)
+
+puts "Fixing permissions on backends"
+FileUtils.chmod 0755, Dir.glob(File.join(path, '*'))
+

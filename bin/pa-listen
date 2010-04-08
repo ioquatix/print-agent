@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+
+require 'print_agent'
+require 'print_agent/config'
+require 'print_agent/version'
+require 'print_agent/listener'
+require "rexml/document"
+require 'xmlrpc/client'
+
+$stderr.puts "PrintAgent listener starting..."
+
+begin
+	$stderr.puts "Setting up WEBrick..."
+	server = WEBrick::HTTPServer.new(
+		:Logger => WEBrick::Log.new($stdout),
+		:AccessLog => [[$stdout, WEBrick::AccessLog::COMBINED_LOG_FORMAT]],
+		:Port => PrintAgent::CLIENT_PORT,
+		:BindAddress => "0.0.0.0",
+		:SSLEnable => true,
+		:SSLVerifyClient => OpenSSL::SSL::VERIFY_NONE,
+		:SSLCertName => [["CN", WEBrick::Utils::getservername]]
+	)
+
+	listener = PrintAgent::Listener.new()
+	listener.valid_addresses = ['localhost']
+
+	$stderr.puts "Setting up XMLRPC handlers..."
+
+	listener.add_handler("pending") do |auth_uri, job_id|
+		uri = URI.parse(auth_uri)
+
+		$stderr.puts "Opening #{uri.to_s.dump}..."
+		system("open", uri.to_s) || system("start", uri.to_s)
+
+		if $?.exitstatus == 0
+			$stderr.puts "Opened successfully."
+		else
+			$stderr.puts "Error \##{$?.exitstatus}!"
+		end
+	end
+
+	listener.add_handler("version") do
+		return [PrintAgent::VERSION::STRING, PLATFORM]
+	end
+
+	$stderr.puts "Setting up WEBrick and XMLRPC..."
+	server.mount("/RPC2", listener)
+
+	trap("INT") do
+		$stderr.puts "Server shutting down..."
+		server.shutdown 
+	end
+
+	$stderr.puts "Starting server on port #{PrintAgent::CLIENT_PORT} (server pid=#{Process.pid})..."
+
+	server.start
+
+	$stderr.puts "Server exiting..."
+rescue => details
+	$stderr.puts "Server Exception #{$!}:"
+	$stderr.puts "\t" + details.backtrace.join("\n\t")
+end

@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+require 'print_agent'
+require 'print_agent/server/daemon'
+
+PrintAgent::Server::Daemon.daemonize

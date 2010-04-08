@@ -1,0 +1,28 @@
+
+Dir.chdir("../") do
+  require 'lib/print_agent/version'
+
+  Gem::Specification.new do |s|
+    s.name = "print_agent"
+    s.version = PrintAgent::VERSION::STRING
+    s.author = "Samuel Williams"
+    s.email = "samuel.williams@oriontransfer.co.nz"
+    s.homepage = "http://www.oriontransfer.co.nz/software/printing-works"
+    s.platform = Gem::Platform::RUBY
+    s.summary = "PrintAgent is a tool for charging print jobs to a particular account."
+    s.files = FileList["{bin,lib}/**/*"].to_a
+    s.require_path = "lib"
+
+	s.executables << 'pa-spool'
+	s.executables << 'pa-daemon'
+	s.executables << 'pa-status'
+	s.executables << 'pa-release'
+	s.executables << 'pa-listen'
+	
+	s.executables << 'pa-setup-server'
+
+    s.has_rdoc = false
+    
+    s.add_dependency("rexec")
+  end
+end
