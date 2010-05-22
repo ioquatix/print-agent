@@ -47,7 +47,7 @@ module PrintAgent
 		def reject
 			if pending?
 				@status = :reject
-				return PrintAgent::unspool!(@job_id)
+				return PrintAgent::spooler.unspool!(@job_id)
 			end
 		end
 
